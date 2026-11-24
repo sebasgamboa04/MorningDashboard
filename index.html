@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f4ef">
+<title>Morning Routine</title>
+<style>
+  :root { color-scheme: light; --ink:#1d2b26; --muted:#68756f; --paper:#f5f4ef; --card:#fff; --line:#e4e7e1; --green:#28634b; --green-soft:#e6f1e9; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  main { width:min(100%,680px); margin:0 auto; padding:calc(24px + env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom)); }
+  header { margin-bottom:22px; }
+  .eyebrow { margin:0 0 7px; color:var(--green); font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+  h1 { margin:0; font-size:clamp(30px,8vw,42px); line-height:1.08; letter-spacing:-.04em; }
+  .date { color:var(--muted); margin:10px 0 0; }
+  .week-card { background:var(--green); color:white; border-radius:20px; padding:19px; margin-bottom:18px; }
+  .week-top { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+  .week-card h2 { margin:0; font-size:18px; }
+  .week-card p { margin:5px 0 0; color:#dce9e1; font-size:13px; }
+  .week-total { font-size:26px; font-weight:800; white-space:nowrap; }
+  .week-track { height:8px; background:#ffffff35; border-radius:99px; overflow:hidden; margin-top:16px; }
+  .week-track span { display:block; height:100%; width:0; background:#fff; border-radius:99px; transition:width .2s; }
+  .section-title { display:flex; justify-content:space-between; align-items:baseline; margin:22px 2px 10px; }
+  .section-title h2 { margin:0; font-size:18px; }
+  .section-title span { color:var(--muted); font-size:13px; }
+  .habits { display:grid; gap:10px; }
+  .habit { display:flex; align-items:center; gap:13px; background:var(--card); border:1px solid var(--line); border-radius:17px; padding:14px; }
+  .emoji { display:grid; place-items:center; width:46px; height:46px; border-radius:13px; background:#f1f3ef; font-size:23px; flex:0 0 auto; }
+  .habit-info { flex:1; min-width:0; }
+  .habit-name { font-weight:750; font-size:16px; }
+  .habit-meta { color:var(--muted); font-size:13px; margin-top:2px; }
+  button { font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .log-btn { border:0; border-radius:12px; background:var(--green); color:white; font-weight:750; padding:11px 14px; min-width:76px; }
+  .log-btn:disabled { background:var(--green-soft); color:var(--green); cursor:default; }
+  .weekly { background:white; border:1px solid var(--line); border-radius:17px; padding:15px; margin-top:10px; }
+  .weekly-row { display:flex; align-items:center; gap:10px; padding:9px 0; }
+  .weekly-row + .weekly-row { border-top:1px solid #f0f1ed; }
+  .weekly-name { flex:1; font-size:14px; font-weight:650; }
+  .dots { display:flex; gap:5px; }
+  .dot { width:11px; height:11px; border-radius:50%; border:1px solid #cbd4cc; background:white; }
+  .dot.filled { background:var(--green); border-color:var(--green); }
+  .left { width:60px; text-align:right; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+  .footer { color:var(--muted); font-size:12px; text-align:center; margin:18px 0 0; }
+  .actions { display:flex; justify-content:center; margin-top:14px; }
+  .reset { background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:10px; padding:9px 13px; font-size:13px; }
+  .notice { min-height:20px; text-align:center; color:var(--green); font-size:13px; margin-top:8px; }
+  @media (min-width:560px) { .habits { grid-template-columns:1fr 1fr; } .habit { align-items:flex-start; } .log-btn { align-self:center; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Your daily reset</p>
+    <h1>Morning routine</h1>
+    <p class="date" id="today">Today</p>
+  </header>
+
+  <section class="week-card" aria-label="Weekly progress">
+    <div class="week-top">
+      <div><h2>This week</h2><p>Goal: 3 sessions of each habit</p></div>
+      <div class="week-total" id="weekTotal">0 / 15</div>
+    </div>
+    <div class="week-track" aria-label="Weekly total progress"><span id="weekBar"></span></div>
+    <p id="weekCaption">15 sessions to go</p>
+  </section>
+
+  <div class="section-title"><h2>Today's habits</h2><span>Tap to log</span></div>
+  <section class="habits" id="habits"></section>
+
+  <div class="section-title"><h2>Weekly targets</h2><span>3 each</span></div>
+  <section class="weekly" id="weekly"></section>
+  <div class="notice" id="notice" aria-live="polite"></div>
+  <div class="actions"><button class="reset" id="reset">Reset this week</button></div>
+  <p class="footer">Progress is saved on this device in your browser.</p>
+</main>
+<script>
+(() => {
+  const habits = [
+    { id:"stretch", name:"15 min stretch", emoji:"🧘", detail:"Mobility & loosen up" },
+    { id:"gym", name:"45 min gym", emoji:"🏋️", detail:"Strength session" },
+    { id:"shower", name:"Shower", emoji:"🚿", detail:"Freshen up" },
+    { id:"breakfast", name:"Breakfast", emoji:"🥣", detail:"Fuel your morning" },
+    { id:"golf", name:"Get ready for golf", emoji:"⛳", detail:"Ready to play" }
+  ];
+  const STORAGE = "morningRoutineDashboard.v1";
+  const $ = id => document.getElementById(id);
+  const dateKey = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+  const weekStart = date => {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() - ((d.getDay()+6)%7)); // Monday
+    return d;
+  };
+  const currentWeekKey = date => dateKey(weekStart(date));
+  let data = {};
+  try { data = JSON.parse(localStorage.getItem(STORAGE) || "{}") || {}; } catch { data = {}; }
+
+  function dayRecord(key) {
+    if (!data[key] || typeof data[key] !== "object") data[key] = {};
+    return data[key];
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE, JSON.stringify(data)); }
+    catch { $("notice").textContent = "Browser storage is unavailable; progress may not persist."; }
+  }
+  function countsForWeek(now) {
+    const start = weekStart(now);
+    const counts = Object.fromEntries(habits.map(h => [h.id,0]));
+    for (let i=0; i<7; i++) {
+      const d = new Date(start); d.setDate(start.getDate()+i);
+      const record = data[dateKey(d)] || {};
+      habits.forEach(h => { if (record[h.id]) counts[h.id]++; });
+    }
+    return counts;
+  }
+  function render() {
+    const now = new Date(), todayKey = dateKey(now), today = dayRecord(todayKey);
+    $("today").textContent = now.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+    const counts = countsForWeek(now);
+    const total = habits.reduce((sum,h)=>sum+Math.min(3,counts[h.id]),0);
+    $("weekTotal").textContent = `${total} / 15`;
+    $("weekBar").style.width = `${total/15*100}%`;
+    $("weekCaption").textContent = `${15-total} ${15-total===1?"session":"sessions"} left to reach all weekly targets`;
+
+    $("habits").innerHTML = habits.map(h => {
+      const done = !!today[h.id];
+      return `<article class="habit">
+        <div class="emoji" aria-hidden="true">${h.emoji}</div>
+        <div class="habit-info"><div class="habit-name">${h.name}</div><div class="habit-meta">${done?"Logged today ✓":h.detail}</div></div>
+        <button class="log-btn" data-habit="${h.id}" ${done?"disabled":""} aria-label="${done?"Completed":"Log"} ${h.name}">${done?"Done ✓":"Log"}</button>
+      </article>`;
+    }).join("");
+
+    $("weekly").innerHTML = habits.map(h => {
+      const count = Math.min(3,counts[h.id]), left = Math.max(0,3-count);
+      return `<div class="weekly-row">
+        <div class="weekly-name">${h.name}</div>
+        <div class="dots" aria-label="${count} of 3 completed">${[0,1,2].map(i=>`<span class="dot ${i<count?"filled":""}"></span>`).join("")}</div>
+        <div class="left">${left} left</div>
+      </div>`;
+    }).join("");
+    document.querySelectorAll("[data-habit]").forEach(button => {
+      button.addEventListener("click", () => {
+        const id = button.dataset.habit;
+        const record = dayRecord(dateKey(new Date()));
+        if (record[id]) return;
+        record[id] = true;
+        save();
+        $("notice").textContent = `${habits.find(h=>h.id===id).name} logged!`;
+        render();
+      });
+    });
+  }
+  $("reset").addEventListener("click", () => {
+    if (!confirm("Clear all logged habits for this Monday–Sunday week?")) return;
+    const start = weekStart(new Date());
+    for (let i=0;i<7;i++) {
+      const d = new Date(start); d.setDate(start.getDate()+i);
+      delete data[dateKey(d)];
+    }
+    save(); $("notice").textContent = "This week's progress was reset."; render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>
